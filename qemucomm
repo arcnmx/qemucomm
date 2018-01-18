@@ -1,0 +1,396 @@
+#!/bin/bash
+set -eu
+set -o pipefail
+
+QEMU_COMMAND=
+QEMU_SOCKET=
+COMMAND_ARGS=
+
+main() {
+	while getopts ":hg:q:" opt; do
+		case $opt in
+			q)
+				QEMU_COMMAND=qemu_qmp
+				QEMU_SOCKET=$OPTARG
+				;;
+			g)
+				QEMU_COMMAND=qemu_ga
+				QEMU_SOCKET=$OPTARG
+				;;
+			h)
+				usage
+				exit
+				;;
+			\?)
+				echo "Invalid option -$OPTARG" >&2
+				usage >&2
+				exit 1
+				;;
+			:)
+				echo "Option -$OPTARG requires an argument" >&2
+				usage >&2
+				exit 1
+				;;
+		esac
+	done
+
+	shift $((OPTIND-1))
+
+	if [[ $# -lt 1 ]]; then
+		usage >&2
+		exit 1
+	fi
+
+	local COMMAND="$1"
+	shift
+
+	COMMAND_ARGS=("$@")
+
+	if [[ -z "$QEMU_COMMAND" ]]; then
+		echo "Must specify either -q or -g" >&2
+		usage >&2
+		exit 1
+	fi
+
+	"$QEMU_COMMAND" "$QEMU_SOCKET" "proxy_cmd cmd_$COMMAND"
+}
+
+proxy_cmd() {
+	"$1" "${COMMAND_ARGS[@]}"
+}
+
+cmd_info() {
+	qemu_execute guest-info '{}'
+	jq -er .version <<< "$GA_RETURN"
+
+	jq -e .supported_commands <<< "$GA_RETURN" >&2
+}
+
+cmd_exec() {
+	local OPT_WAIT=false
+	local OPT_INPUT=false
+	local OPT_OUTPUT=false
+	local OPT_ENV=()
+
+	OPTIND=
+	while getopts ":e:wio" opt; do
+		case $opt in
+			e)
+				OPT_ENV+=("$OPTARG")
+				;;
+			w)
+				OPT_WAIT=true
+				;;
+			i)
+				OPT_INPUT=true
+				;;
+			o)
+				OPT_OUTPUT=true
+				;;
+			\?)
+				echo "Invalid option -$OPTARG" >&2
+				usage >&2
+				exit 1
+				;;
+			:)
+				echo "Option -$OPTARG requires an argument" >&2
+				usage >&2
+				exit 1
+				;;
+		esac
+	done
+
+	shift $((OPTIND-1))
+
+	if [[ $# -lt 1 ]]; then
+		usage >&2
+		exit 1
+	fi
+
+	local CMD="$1"
+	shift
+	local OPT_ARG=("$@")
+
+	local JSON_ENV JSON_ARG PID STATUS EXIT_CODE
+	JSON_ENV=$(json_array ${OPT_ENV[@]+"${OPT_ENV[@]}"})
+	JSON_ARG=$(json_array ${OPT_ARG[@]+"${OPT_ARG[@]}"})
+
+	qemu_execute guest-exec "$(json \
+		--arg path "$CMD" \
+		--arg input "$([[ $OPT_INPUT == false ]] || base64)" \
+		--argjson arg "$JSON_ARG" \
+		--argjson env "$JSON_ENV" \
+		--argjson capture "$OPT_OUTPUT" \
+		'{"path": $path, "arg": $arg, "env": $env, "input-data": $input, "capture-output": $capture}' \
+	)"
+	PID="$(jq -re .pid <<< $GA_RETURN)"
+
+	if [[ $OPT_WAIT = true || $OPT_OUTPUT == true ]]; then
+		while true; do
+			qemu_execute guest-exec-status "$(json --argjson pid "$PID" '{"pid": $pid}')"
+			STATUS="$GA_RETURN"
+			if [[ "$(jq -er .exited <<< "$STATUS")" == false ]]; then
+				sleep 1
+			else
+				EXIT_CODE=$(jq -er .exitcode <<< "$STATUS")
+				if [[ $OPT_OUTPUT == true ]]; then
+					jq -r '."out-data" // empty' <<< "$STATUS" | base64 -d
+					jq -r '."err-data" // empty' <<< "$STATUS" | base64 -d >&2
+					# TODO: check .out-truncated, .err-truncated
+				fi
+				return $EXIT_CODE
+			fi
+		done
+	else
+		echo "$PID"
+	fi
+}
+
+cmd_shutdown() {
+	local OPT_REBOOT=false
+	local OPT_HALT=false
+
+	OPTIND=
+	while getopts ":rh" opt; do
+		case $opt in
+			r)
+				OPT_REBOOT=true
+				;;
+			h)
+				OPT_HALT=true
+				;;
+			\?)
+				echo "Invalid option -$OPTARG" >&2
+				usage >&2
+				exit 1
+				;;
+			:)
+				echo "Option -$OPTARG requires an argument" >&2
+				usage >&2
+				exit 1
+				;;
+		esac
+	done
+
+	shift $((OPTIND-1))
+
+	qemu_execute guest-shutdown "$(json \
+		--arg mode "$([[ $OPT_REBOOT == true ]] && echo reboot || ([[ $OPT_HALT == true ]] && echo halt) || echo powerdown)" \
+		'{"mode": $mode}'
+	)"
+}
+
+cmd_custom() {
+	if [[ $# -lt 1 ]]; then
+		usage >&2
+		exit 1
+	fi
+
+	local COMMAND="$1"
+	shift
+
+	local ARGS
+	if [[ $# -gt 0 ]]; then
+		ARGS="$1"
+		shift
+	else
+		ARGS='{}'
+	fi
+
+	qemu_execute "$COMMAND" "$ARGS" | jq .
+}
+
+cmd_add_device() {
+	if [[ $# -lt 2 ]]; then
+		usage >&2
+		exit 1
+	fi
+
+	local DRIVER="$1"
+	local ID="$2"
+	shift 2
+
+	qemu_execute device_add "$(json_dict driver="$DRIVER" id="$ID" "$@")"
+}
+
+cmd_del_device() {
+	if [[ $# -lt 1 ]]; then
+		usage >&2
+		exit 1
+	fi
+
+	local ID="$1"
+
+	qemu_execute device_del "$(json --arg id "$ID" '{"id": $id}')"
+}
+
+cmd_add_object() {
+	if [[ $# -lt 2 ]]; then
+		usage >&2
+		exit 1
+	fi
+
+	local DRIVER="$1"
+	local ID="$2"
+	shift 2
+
+	local PARAMS
+	PARAMS=$(json_dict "$@")
+
+	qemu_execute object-add "$(json \
+		--arg driver "$DRIVER" \
+		--arg id "$ID" \
+		--argjson params "$PARAMS" \
+		'{ "qom-type": $driver, "id": $id, "params": $params }'
+	)"
+}
+
+cmd_del_object() {
+	if [[ $# -lt 1 ]]; then
+		usage >&2
+		exit 1
+	fi
+
+	local ID="$1"
+
+	qemu_execute object-del "$(json --arg id "$ID" '{"id": $id}')"
+}
+
+_cmd_del() {
+	local COMMAND="$1"
+	local ID="$2"
+
+	qemu_execute "$COMMAND" "$(json --arg id "$ID" '{"id": $id}')"
+}
+
+qemu_execute() {
+	local COMMAND ARGS
+	COMMAND="$1"
+	ARGS="$2"
+
+	json --arg cmd "$COMMAND" --argjson args "$ARGS" '{"execute": $cmd, "arguments": $args}' >&$FD_SOCKET_OUT
+
+	local LINE
+	read -t 5 -r -u $FD_SOCKET_IN LINE
+
+	if [[ -n "${QCOMM_DEBUG-}" ]]; then
+		echo "SEND: $(json --arg cmd "$COMMAND" --argjson args "$ARGS" '{"execute": $cmd, "arguments": $args}')" >&2
+		echo "RECV: $LINE" >&2
+	fi
+
+	local ERROR=$(jq -r '.error.desc // empty' <<< "$LINE")
+	if [[ -n "$ERROR" ]]; then
+		echo "$ERROR" >&2
+		return 1
+	fi
+
+	GA_RETURN=$(jq -cM .return <<< "$LINE")
+}
+
+qemu_ga() {
+	local SOCKET COMMAND
+	SOCKET="$1"
+	COMMAND="$2"
+
+	coproc FDS (
+		socket "$SOCKET"
+	)
+
+	FD_SOCKET_IN=${FDS[0]}
+	FD_SOCKET_OUT=${FDS[1]}
+
+	# sync character isn't working?
+	#printf '\xff' >&$FD_SOCKET_OUT
+
+	local PID=$$
+	qemu_execute guest-sync "$(json --argjson pid "$PID" '{"id": $pid}')"
+	[[ "$(jq -re . <<< "$GA_RETURN")" = "$$" ]] || (echo "guest-sync mismatch" >&2 && return 1)
+
+	eval "$COMMAND"
+
+	local RETURN
+	kill -INT "$FDS_PID" 2>/dev/null
+	wait "$FDS_PID" || RETURN=$?
+	if [[ $RETURN != 130 ]]; then
+		return $RETURN
+	fi
+}
+
+qemu_qmp() {
+	local SOCKET COMMAND
+	SOCKET="$1"
+	COMMAND="$2"
+
+	coproc FDS (
+		socket "$SOCKET"
+	)
+
+	FD_SOCKET_IN=${FDS[0]}
+	FD_SOCKET_OUT=${FDS[1]}
+
+	eval "$COMMAND"
+
+	wait "$FDS_PID"
+}
+
+socket() {
+	if inpath socat; then
+		exec socat - UNIX-CONNECT:"$1"
+	elif inpath nc; then
+		exec nc -U "$1"
+	fi
+}
+
+json() {
+	jq -ncM "$@"
+}
+
+json_array() {
+	for arg in "$@"; do
+		json --arg arg "$arg" '$arg'
+	done | jq -cMs .
+}
+
+json_dict() {
+	local SEPARATOR="${1-=}"
+	for arg in "$@"; do
+		local KEY=$(cut -d "$SEPARATOR" -f1 <<< $arg)
+		local VALUE=$(cut -d "$SEPARATOR" -f2- <<< $arg)
+
+		json --arg value "$VALUE" '{"'$KEY'": $value}'
+	done | jq -cMs 'add // {}'
+}
+
+inpath() {
+	which "$1" > /dev/null 2>&1
+}
+
+usage() {
+	echo "$0 [options] COMMAND"
+	echo "  An interface to QEMU QMP and guest agent"
+	echo "  -h: show help"
+	echo "  -q PATH: QEMU QMP socket path"
+	echo "  -g PATH: QEMU guest agent socket path"
+	echo
+	echo "Commands"
+	echo "  exec [options] PATH [ARGUMENTS..]"
+	echo "    Executes a process inside the guest"
+	echo "    -e ENV=value: set environment variable(s)"
+	echo "    -w: wait for process to terminate"
+	echo "    -i: send stdin"
+	echo "    -o: capture stdout"
+	echo "  info"
+	echo "    Displays information about the guest, and can be used to check that the guest agent is running"
+	echo "  shutdown"
+	echo "    Tells the guest to initiate a system shutdown"
+	echo "    -h: halt immediately"
+	echo "    -r: reboot"
+	echo "  custom COMMAND [JSON_ARGUMENTS]"
+	echo "    Runs a custom command, optionally passing arguments"
+	echo "  add_device DRIVER ID [KEY=VALUE..]"
+	echo "  del_device ID"
+	echo "  add_object TYPE ID [KEY=VALUE..]"
+	echo "  del_object ID"
+}
+
+main "$@"
