@@ -63,7 +63,7 @@ cmd_info() {
 	qemu_execute guest-info '{}'
 	jq -er .version <<< "$GA_RETURN"
 
-	jq -e .supported_commands <<< "$GA_RETURN" >&2
+	#jq -e .supported_commands <<< "$GA_RETURN"
 }
 
 cmd_exec() {
@@ -130,7 +130,7 @@ cmd_exec() {
 			qemu_execute guest-exec-status "$(json --argjson pid "$PID" '{"pid": $pid}')"
 			STATUS="$GA_RETURN"
 			if [[ "$(jq -er .exited <<< "$STATUS")" == false ]]; then
-				sleep 1
+				sleep 0.1
 			else
 				EXIT_CODE=$(jq -er .exitcode <<< "$STATUS")
 				if [[ $OPT_OUTPUT == true ]]; then
@@ -197,7 +197,8 @@ cmd_custom() {
 		ARGS='{}'
 	fi
 
-	qemu_execute "$COMMAND" "$ARGS" | jq .
+	qemu_execute "$COMMAND" "$ARGS"
+	jq . <<< "$GA_RETURN"
 }
 
 cmd_add_device() {
@@ -241,7 +242,7 @@ cmd_add_object() {
 		--arg driver "$DRIVER" \
 		--arg id "$ID" \
 		--argjson params "$PARAMS" \
-		'{ "qom-type": $driver, "id": $id, "params": $params }'
+		'{ "qom-type": $driver, "id": $id, "props": $params }'
 	)"
 }
 
@@ -266,7 +267,7 @@ _cmd_del() {
 qemu_execute() {
 	local COMMAND ARGS
 	COMMAND="$1"
-	ARGS="$2"
+	ARGS="${2-}"
 
 	json --arg cmd "$COMMAND" --argjson args "$ARGS" '{"execute": $cmd, "arguments": $args}' >&$FD_SOCKET_OUT
 
@@ -328,9 +329,20 @@ qemu_qmp() {
 	FD_SOCKET_IN=${FDS[0]}
 	FD_SOCKET_OUT=${FDS[1]}
 
+	local LINE
+	read -t 5 -r -u $FD_SOCKET_IN LINE
+	[[ -n "$(jq -re .QMP.version.qemu.major <<< "$LINE")" ]] || (echo "QMP handshake failed" >&2 && return 1)
+
+	qemu_execute qmp_capabilities "{}"
+
 	eval "$COMMAND"
 
-	wait "$FDS_PID"
+	local RETURN
+	kill -INT "$FDS_PID" 2>/dev/null
+	wait "$FDS_PID" || RETURN=$?
+	if [[ $RETURN != 130 ]]; then
+		return $RETURN
+	fi
 }
 
 socket() {
@@ -352,7 +364,7 @@ json_array() {
 }
 
 json_dict() {
-	local SEPARATOR="${1-=}"
+	local SEPARATOR="="
 	for arg in "$@"; do
 		local KEY=$(cut -d "$SEPARATOR" -f1 <<< $arg)
 		local VALUE=$(cut -d "$SEPARATOR" -f2- <<< $arg)
