@@ -1,0 +1,18 @@
+[package]
+name = "qemucomm"
+version = "0.1.0"
+authors = ["arcnmx"]
+edition = "2021"
+
+description = "An interface to QEMU QMP and guest agent"
+
+[dependencies]
+qapi = { version = "0.9.0", features = ["qmp", "qga", "async-tokio-all"] }
+tokio = { version = "1.0.0", default-features = false, features = ["macros", "rt-multi-thread", "time"] }
+serde = "1"
+futures = "0.3"
+log = "0.4"
+env_logger = "0.9"
+async-ctrlc = { version = "1", features = ["stream"] }
+clap = { version = "3", features = ["derive", "env"] }
+anyhow = "1"

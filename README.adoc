@@ -1,0 +1,3 @@
+= qemucomm
+
+Command-line interface for https://wiki.qemu.org/Documentation/QMP[QMP] and https://wiki.qemu.org/Features/GuestAgent[QEMU Guest Agent].
