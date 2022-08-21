@@ -375,9 +375,9 @@ dependencies = [
 
 [[package]]
 name = "qapi"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ed97b5f908b777a5a8b84f7de5b3cbfbf59076c50cebd28ba054cf72c12290a"
+checksum = "827fe2cc81e7ce09d18f06b8bec0d38cfd34d50123feb51de3d70dbabf07721e"
 dependencies = [
  "bytes",
  "futures",
@@ -394,9 +394,9 @@ dependencies = [
 
 [[package]]
 name = "qapi-codegen"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45f0a56d4aee2fd1eb4d35aa1fdb2acc75614f32cc2164e45c9a6780d3fe9ca2"
+checksum = "a408cd6c8657eed6e5c63ba2c53b855e46ae42f60c69badc17afcbc6a4f3ba57"
 dependencies = [
  "qapi-parser",
 ]
@@ -413,9 +413,9 @@ dependencies = [
 
 [[package]]
 name = "qapi-qga"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33ed69ddc6e0b5474ce08defc66d5a71c697ba6f7b4fc7055e4b61ccc5aa63fa"
+checksum = "1c530e07b7d34204c303c477571dbd079c09c0f20d7d71d9ecc81db1720f60a9"
 dependencies = [
  "qapi-codegen",
  "qapi-spec",
@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "qapi-qmp"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "228cb0ddcb8b66de60e07cb9b5b8c772b7c1e3610bbcdd7053ac49c4006b6e8a"
+checksum = "ae94d8d20def2a1ea09e33ca7b7dd5b32cbfd2e4eddf10f11c6d037d1feebdea"
 dependencies = [
  "qapi-codegen",
  "qapi-spec",

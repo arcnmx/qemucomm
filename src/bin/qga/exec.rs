@@ -27,7 +27,7 @@ pub(crate) struct Exec {
 	arguments: Vec<String>,
 }
 
-fn guest_kill(pid: i32, os: qga::GuestOSInfo, force: bool) -> qga::guest_exec {
+fn guest_kill(pid: i64, os: qga::GuestOSInfo, force: bool) -> qga::guest_exec {
 	let os_id = os.id.as_ref().map(String::as_str).unwrap_or("");
 	match os_id {
 		"mswindows" => qga::guest_exec {
@@ -142,9 +142,9 @@ impl Exec {
 		match status.exited {
 			false => Ok(1),
 			true => match (status.exitcode, status.signal) {
-				(Some(code), _) => Ok(code),
+				(Some(code), _) => Ok(code as i32),
 				_ if ctrlc_counter > 0 => Ok(128 + SIGINT),
-				(None, Some(signal)) if signal > 0 && signal < 128 => Ok(128 + signal),
+				(None, Some(signal)) if signal > 0 && signal < 128 => Ok(128 + signal as i32),
 				(None, Some(_)) => Ok(125),
 				_ => Ok(0),
 			},
