@@ -7,6 +7,7 @@ use std::path::PathBuf;
 mod status;
 mod device;
 mod object;
+mod hmp;
 
 pub(crate) type QmpStream = qapi::futures::QapiService<qapi::futures::QmpStreamTokio<tokio::io::WriteHalf<tokio::net::UnixStream>>>;
 
@@ -29,6 +30,8 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Command {
 	Status(status::Status),
+	#[clap(alias = "hmp")]
+	HumanCommand(hmp::HumanCommand),
 	AddDevice(device::AddDevice),
 	DelDevice(device::DelDevice),
 	AddObject(object::AddObject),
@@ -48,6 +51,7 @@ async fn main() -> Result<()> {
 
 	let res = match args.command {
 		Command::Status(c) => c.run(qmp, args.args).await,
+		Command::HumanCommand(c) => c.run(qmp, args.args).await,
 		Command::AddDevice(c) => c.run(qmp, args.args).await,
 		Command::DelDevice(c) => c.run(qmp, args.args).await,
 		Command::AddObject(c) => c.run(qmp, args.args).await,
