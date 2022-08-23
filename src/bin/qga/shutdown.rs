@@ -1,5 +1,7 @@
 use anyhow::Result;
 use qapi::qga;
+use log::warn;
+use tokio::time::{timeout, Duration};
 use clap::{Parser, ValueEnum};
 use super::{GlobalArgs, QgaStream};
 
@@ -12,9 +14,14 @@ pub(crate) struct Shutdown {
 
 impl Shutdown {
 	pub async fn run(self, qga: QgaStream, _args: GlobalArgs) -> Result<i32> {
-		qga.execute(qga::guest_shutdown {
+		let cmd = qga.execute(qga::guest_shutdown {
 			mode: Some(self.mode.into()),
-		}).await?;
+		});
+
+		match timeout(Duration::from_secs(1), cmd).await {
+			Ok(res) => res.map(drop)?,
+			Err(_) => warn!("Shutdown response timed out"),
+		}
 
 		Ok(0)
 	}
