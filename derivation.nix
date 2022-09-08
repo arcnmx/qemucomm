@@ -14,7 +14,7 @@ in rustPlatform.buildRustPackage {
   version = cargoToml.package.version;
 
   src = _arg'qemucomm;
-  cargoSha256 = "sha256-hzFo/g9jFGU+Z8g8hWJYnKIMvoT+G40zCcrNBTIA6+4=";
+  cargoSha256 = "sha256-3WhwcSoqPni9PK+qKX+2i++hqI9OVntGLytaJN3Amqg=";
   inherit buildType;
 
   doCheck = false;
