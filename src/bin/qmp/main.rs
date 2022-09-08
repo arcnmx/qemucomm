@@ -6,6 +6,7 @@ use tokio::sync::broadcast;
 use std::time::Duration;
 use std::path::PathBuf;
 
+mod command;
 mod status;
 mod device;
 mod object;
@@ -43,6 +44,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
+	Ping,
 	Status(status::Status),
 	#[clap(alias = "hmp")]
 	HumanCommand(hmp::HumanCommand),
@@ -50,6 +52,10 @@ enum Command {
 	DelDevice(device::DelDevice),
 	AddObject(object::AddObject),
 	DelObject(object::DelObject),
+	Stop(command::StopCommand),
+	#[clap(alias = "cont")]
+	Continue(command::ContinueCommand),
+	Quit(command::QuitCommand),
 }
 
 #[tokio::main]
@@ -80,12 +86,19 @@ async fn main() -> Result<()> {
 	});
 
 	let res = match args.command {
+		Command::Ping => {
+			drop(qmp);
+			Ok(0)
+		},
 		Command::Status(c) => c.run(qmp, args.args).await,
 		Command::HumanCommand(c) => c.run(qmp, args.args).await,
 		Command::AddDevice(c) => c.run(qmp, args.args).await,
 		Command::DelDevice(c) => c.run(qmp, args.args).await,
 		Command::AddObject(c) => c.run(qmp, args.args).await,
 		Command::DelObject(c) => c.run(qmp, args.args).await,
+		Command::Stop(c) => c.run(qmp, args.args).await,
+		Command::Continue(c) => c.run(qmp, args.args).await,
+		Command::Quit(c) => c.run(qmp, args.args).await,
 	};
 
 	match timeout(Duration::from_secs(1), handle).await {
