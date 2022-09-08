@@ -41,8 +41,9 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-	Exec(exec::Exec),
+	Ping(info::Ping),
 	Info(info::Info),
+	Exec(exec::Exec),
 	Shutdown(shutdown::Shutdown),
 }
 
@@ -58,8 +59,9 @@ async fn main() -> Result<()> {
 	qga.guest_sync(sync_value).await?;
 
 	let res = match args.command {
-		Command::Exec(c) => c.run(qga, args.args).await,
+		Command::Ping(c) => c.run(qga, args.args).await,
 		Command::Info(c) => c.run(qga, args.args).await,
+		Command::Exec(c) => c.run(qga, args.args).await,
 		Command::Shutdown(c) => c.run(qga, args.args).await,
 	};
 
