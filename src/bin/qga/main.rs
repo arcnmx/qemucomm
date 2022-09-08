@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
+use tokio::task::JoinHandle;
 use tokio::time::timeout;
 use std::time::Duration;
 use std::path::PathBuf;
@@ -14,12 +15,24 @@ pub(crate) type QgaStream = qapi::futures::QapiService<qapi::futures::QgaStreamT
 pub(crate) struct GlobalArgs {
 }
 
-#[derive(Parser, Debug)]
-#[clap(author, version, about)]
-struct Cli {
+#[derive(Args, Debug)]
+pub(crate) struct ConnectionArgs {
 	/// QEMU guest agent socket path
 	#[clap(short, long, env("QEMUCOMM_QGA_SOCKET_PATH"))]
 	socket: PathBuf,
+	#[clap(long, short = 'S')]
+	no_sync: bool,
+	#[clap(short, long)]
+	wait: bool,
+	#[clap(short, long = "timeout")]
+	timeout_seconds: Option<u64>,
+}
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about)]
+struct Cli {
+	#[clap(flatten)]
+	connection: ConnectionArgs,
 	#[clap(flatten)]
 	args: GlobalArgs,
 	#[clap(subcommand)]
@@ -39,8 +52,7 @@ async fn main() -> Result<()> {
 
 	let args = Cli::parse();
 
-	let stream = qapi::futures::QgaStreamTokio::open_uds(&args.socket).await?;
-	let (qga, handle) = stream.spawn_tokio();
+	let (qga, handle) = args.connection.connect().await?;
 
 	let sync_value = &qga as *const _ as usize as i32;
 	qga.guest_sync(sync_value).await?;
@@ -62,5 +74,30 @@ async fn main() -> Result<()> {
 		Ok(code) => {
 			std::process::exit(code)
 		},
+	}
+}
+
+impl ConnectionArgs {
+	fn timeout(&self) -> Option<Option<Duration>> {
+		match self.wait {
+			true => Some(self.timeout_seconds.map(Duration::from_secs)),
+			false => None,
+		}
+	}
+
+	async fn connect(&self) -> Result<(QgaStream, JoinHandle<()>)> {
+		if let Some(timeout) = self.timeout() {
+			qemucomm::wait(timeout, qemucomm::wait_for_socket(&self.socket)).await?;
+		}
+
+		let stream = qapi::futures::QgaStreamTokio::open_uds(&self.socket).await?;
+		let (qga, handle) = stream.spawn_tokio();
+
+		if !self.no_sync {
+			let sync_value = &qga as *const _ as usize as i32;
+			qga.guest_sync(sync_value).await?;
+		}
+
+		Ok((qga, handle))
 	}
 }
