@@ -1,23 +1,21 @@
-{ rustPlatform
-, nix-gitignore
+let
+  self = import ./. { pkgs = null; system = null; };
+in {
+  rustPlatform
 , buildType ? "release"
 , lib
-, _arg'qemucomm ? nix-gitignore.gitignoreSourcePure [ ./.gitignore ''
-  /.github
-  /.git
-  *.nix
-'' ] ./.
-}: with lib; let
-  cargoToml = importTOML ./Cargo.toml;
-in rustPlatform.buildRustPackage {
-  pname = cargoToml.package.name;
-  version = cargoToml.package.version;
+, cargoLock ? crate.cargoLock
+, source ? crate.src
+, crate ? self.lib.crate
+}: with lib; rustPlatform.buildRustPackage rec {
+  pname = crate.name;
+  inherit (crate) version;
 
-  src = _arg'qemucomm;
-  cargoSha256 = "sha256-3WhwcSoqPni9PK+qKX+2i++hqI9OVntGLytaJN3Amqg=";
-  inherit buildType;
+  src = source;
+  inherit cargoLock buildType;
 
-  doCheck = false;
+  cargoBuildFlags = [ "--bins" ];
+  doCheck = buildType != "release";
 
   meta = {
     platforms = platforms.unix ++ platforms.windows;
