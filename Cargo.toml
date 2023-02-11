@@ -5,6 +5,9 @@ authors = ["arcnmx"]
 edition = "2021"
 
 description = "An interface to QEMU QMP and guest agent"
+repository = "https://github.com/arcnmx/qemucomm"
+readme = "src/README.md"
+license = "MIT"
 
 include = [
 	"/src/**",

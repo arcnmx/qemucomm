@@ -1,5 +1,5 @@
 { config, pkgs, lib, ... }: with pkgs; with lib; let
-  inherit (import ./. { inherit pkgs; }) packages;
+  inherit (import ./. { inherit pkgs; }) packages checks;
   qemucomm = packages.qemucomm.override {
     buildType = "debug";
   };
@@ -16,6 +16,7 @@ in {
     };
     tasks = {
       build.inputs = singleton qemucomm;
+      generate.inputs = [ checks.readme ];
     };
   };
 }

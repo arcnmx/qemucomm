@@ -16,7 +16,7 @@
       hasSuffix
     ;
   in flakelib {
-    inherit (rust.lib) systems;
+    systems = [ "x86_64-linux" "aarch64-linux" ];
     inherit inputs;
     config = {
       name = "qemucomm";
@@ -31,6 +31,12 @@
       default = { qemucomm }: qemucomm;
     };
     checks = {
+      readme = { rust'builders, qemucomm-readme }: rust'builders.check-generate {
+        expected = qemucomm-readme;
+        src = ./src/README.md;
+        meta.name = "diff src/README.md (nix run .#generate)";
+      };
+
       test = { rustPlatform, source, qemucomm }: rustPlatform.buildRustPackage {
         pname = self.lib.crate.package.name;
         inherit (self.lib.crate) cargoLock version;
@@ -71,10 +77,14 @@
     legacyPackages = { callPackageSet }: callPackageSet {
       source = { rust'builders }: rust'builders.wrapSource self.lib.crate.src;
 
-      generate = { rust'builders, outputHashes }: rust'builders.generateFiles {
+      generate = { rust'builders, outputHashes, qemucomm-readme }: rust'builders.generateFiles {
         paths = {
           "lock.nix" = outputHashes;
+          "src/README.md" = qemucomm-readme;
         };
+      };
+      qemucomm-readme = { rust'builders }: rust'builders.adoc2md {
+        src = ./README.adoc;
       };
       outputHashes = { rust'builders }: rust'builders.cargoOutputHashes {
         inherit (self.lib) crate;
