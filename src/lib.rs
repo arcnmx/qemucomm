@@ -18,7 +18,7 @@ pub fn key_val<K: FromStr, V: FromStr>(s: &str) -> Result<(K, V)> where
 		))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Pair<K, V> {
 	pub key: K,
 	pub value: V,

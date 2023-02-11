@@ -23,22 +23,22 @@ pub(crate) struct GlobalArgs {
 #[derive(Args, Debug)]
 pub(crate) struct ConnectionArgs {
 	/// QEMU QMP socket path
-	#[clap(short, long, env("QEMUCOMM_QMP_SOCKET_PATH"))]
+	#[arg(short, long, env("QEMUCOMM_QMP_SOCKET_PATH"))]
 	socket: PathBuf,
-	#[clap(short, long)]
+	#[arg(short, long)]
 	wait: bool,
-	#[clap(short, long = "timeout")]
+	#[arg(short, long = "timeout")]
 	timeout_seconds: Option<u64>,
 }
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about)]
+#[command(author, version, about)]
 struct Cli {
-	#[clap(flatten)]
+	#[command(flatten)]
 	connection: ConnectionArgs,
-	#[clap(flatten)]
+	#[command(flatten)]
 	args: GlobalArgs,
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	command: Command,
 }
 
@@ -46,14 +46,14 @@ struct Cli {
 enum Command {
 	Ping,
 	Status(status::Status),
-	#[clap(alias = "hmp")]
+	#[command(alias = "hmp")]
 	HumanCommand(hmp::HumanCommand),
 	AddDevice(device::AddDevice),
 	DelDevice(device::DelDevice),
 	AddObject(object::AddObject),
 	DelObject(object::DelObject),
 	Stop(command::StopCommand),
-	#[clap(alias = "cont")]
+	#[command(alias = "cont")]
 	Continue(command::ContinueCommand),
 	Quit(command::QuitCommand),
 }

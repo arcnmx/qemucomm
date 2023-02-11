@@ -18,24 +18,24 @@ pub(crate) struct GlobalArgs {
 #[derive(Args, Debug)]
 pub(crate) struct ConnectionArgs {
 	/// QEMU guest agent socket path
-	#[clap(short, long, env("QEMUCOMM_QGA_SOCKET_PATH"))]
+	#[arg(short, long, env("QEMUCOMM_QGA_SOCKET_PATH"))]
 	socket: PathBuf,
-	#[clap(long, short = 'S')]
+	#[arg(long, short = 'S')]
 	no_sync: bool,
-	#[clap(short, long)]
+	#[arg(short, long)]
 	wait: bool,
-	#[clap(short, long = "timeout")]
+	#[arg(short, long = "timeout")]
 	timeout_seconds: Option<u64>,
 }
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about)]
+#[command(author, version, about)]
 struct Cli {
-	#[clap(flatten)]
+	#[command(flatten)]
 	connection: ConnectionArgs,
-	#[clap(flatten)]
+	#[command(flatten)]
 	args: GlobalArgs,
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	command: Command,
 }
 
