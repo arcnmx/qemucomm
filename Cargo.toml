@@ -21,7 +21,7 @@ tokio = { version = "1.0.0", default-features = false, features = ["macros", "rt
 serde = "1"
 futures = "0.3"
 log = "0.4"
-env_logger = "0.9"
+env_logger = "0.10"
 inotify = "0.10"
 async-ctrlc = { version = "1", features = ["stream"] }
 clap = { version = "4", features = ["derive", "env"] }
