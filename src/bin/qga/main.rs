@@ -6,6 +6,7 @@ use std::time::Duration;
 use std::path::PathBuf;
 
 mod exec;
+mod file;
 mod info;
 mod shutdown;
 
@@ -44,6 +45,10 @@ enum Command {
 	Ping(info::Ping),
 	Info(info::Info),
 	Exec(exec::Exec),
+	#[command(alias = "read")]
+	ReadFile(file::ReadFile),
+	#[command(alias = "write")]
+	WriteFile(file::WriteFile),
 	Shutdown(shutdown::Shutdown),
 }
 
@@ -62,6 +67,8 @@ async fn main() -> Result<()> {
 		Command::Ping(c) => c.run(qga, args.args).await,
 		Command::Info(c) => c.run(qga, args.args).await,
 		Command::Exec(c) => c.run(qga, args.args).await,
+		Command::ReadFile(c) => c.run(qga, args.args).await,
+		Command::WriteFile(c) => c.run(qga, args.args).await,
 		Command::Shutdown(c) => c.run(qga, args.args).await,
 	};
 

@@ -17,7 +17,8 @@ include = [
 
 [dependencies]
 qapi = { version = "0.10.0", features = ["qmp", "qga", "async-tokio-all"] }
-tokio = { version = "1.0.0", default-features = false, features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread", "time", "io-std"] }
+bytes = "1"
 serde = "1"
 futures = "0.3"
 log = "0.4"
