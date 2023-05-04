@@ -6,7 +6,10 @@
 in {
   config = {
     name = "qemucomm";
-    ci.gh-actions.enable = true;
+    ci = {
+      version = "v0.6";
+      gh-actions.enable = true;
+    };
     cache.cachix = {
       ci.signingKey = "";
       arc.enable = true;
