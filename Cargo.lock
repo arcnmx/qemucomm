@@ -461,9 +461,9 @@ dependencies = [
 
 [[package]]
 name = "qapi"
-version = "0.11.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42d41564a987591d45eff3a08276dfcea872c1bdebda0491238145df90b5f183"
+checksum = "5dc74fe2d73c229f4b3a11a71fab764ee1f2757fc93eeb2756c33ba2f8103928"
 dependencies = [
  "bytes",
  "futures",
@@ -480,9 +480,9 @@ dependencies = [
 
 [[package]]
 name = "qapi-codegen"
-version = "0.10.3"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34a6f144252eb5edac413a42faabfd2d2ffeeb7f0d6decd0c25ef5f8d8a12b75"
+checksum = "004784ad5424479ff79e2c06fd5a071b0fd42ab73afd3466c813e72519fd89cb"
 dependencies = [
  "qapi-parser",
 ]
@@ -499,9 +499,9 @@ dependencies = [
 
 [[package]]
 name = "qapi-qga"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8862c687580e2f0433d328713b0ede316dd763e0727834ddfa524e4e82d8da9"
+checksum = "d7f4921ee81cdaa869d0417064f0a368fae7a82d9740e7467448f13b9f8087c7"
 dependencies = [
  "qapi-codegen",
  "qapi-spec",
@@ -510,9 +510,9 @@ dependencies = [
 
 [[package]]
 name = "qapi-qmp"
-version = "0.11.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "880760acd8db07239b17051ec801bfb204f81efd269af538aeea242121b244a9"
+checksum = "7ec512aad29acac9ac7ecf56f96e0434747dcca35af5edf5aa67464fd39eb642"
 dependencies = [
  "qapi-codegen",
  "qapi-spec",
@@ -595,18 +595,18 @@ checksum = "f91339c0467de62360649f8d3e185ca8de4224ff281f66000de5eb2a77a79041"
 
 [[package]]
 name = "serde"
-version = "1.0.160"
+version = "1.0.162"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb2f3770c8bce3bcda7e149193a069a0f4365bda1fa5cd88e03bca26afc1216c"
+checksum = "71b2f6e1ab5c2b98c05f0f35b236b22e8df7ead6ffbf51d7808da7f8817e7ab6"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.160"
+version = "1.0.162"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "291a097c63d8497e00160b166a967a4a79c64f3facdd01cbd7502231688d77df"
+checksum = "a2a0814352fd64b58489904a44ea8d90cb1a91dcb6b4f5ebabc32c8318e93cb6"
 dependencies = [
  "proc-macro2",
  "quote",

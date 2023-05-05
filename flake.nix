@@ -74,7 +74,7 @@
       };
       default = { outputs'devShells }: outputs'devShells.plain;
     };
-    legacyPackages = { callPackageSet }: callPackageSet {
+    legacyPackages = {
       source = { rust'builders }: rust'builders.wrapSource self.lib.crate.src;
 
       generate = { rust'builders, outputHashes, qemucomm-readme }: rust'builders.generateFiles {
@@ -89,7 +89,7 @@
       outputHashes = { rust'builders }: rust'builders.cargoOutputHashes {
         inherit (self.lib) crate;
       };
-    } { };
+    };
     lib = {
       crate = rust.lib.importCargo {
         path = ./Cargo.toml;
